@@ -6,11 +6,13 @@ const bodyParser = require('body-parser')
 app.use(bodyParser.json())
 app.use(cors())
 
-var server = require('http').createServer(app)
-var io = require('socket.io')(server)
+const server = require('http').createServer(app)
+const io = require('socket.io')(server)
 
-server.listen(5000, function () {
-    console.log('listening on *:5000')
+const port = process.env.PORT || 5000
+
+server.listen(port, function () {
+    console.log(`listening on port ${port}`)
 })
 
 app.get('/', function (_, res) {
@@ -18,9 +20,9 @@ app.get('/', function (_, res) {
 })
 
 io.on('connection', function (socket) {
-    console.log('Client connected. socketID: ', socket.id)
-    socket.on('choose user', (input) => console.log('Player: ', input))
-    socket.on('new game', (input) => console.log('New Game. Room ID: ', input))
+    console.log(`Client connected. socketID: ${socket.id}`)
+    socket.on('choose user', (input) => console.log(`Player: ${input}`))
+    socket.on('new game', (input) => console.log(`New Game. Room ID: ${input}`))
     socket.on('disconnect', () => console.log('Client disconnected.'))
 })
 
