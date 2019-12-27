@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+  </head>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io()
+    var el
+    socket.on('time', (timeString) => {
+      el = document.getElementById('server-time')
+      el.innerHTML = 'Server time: ' + timeString;
+    })
+  </script>
+  <body>
+    <h1 id="server-time"></h1>
+  </body>
+</html>
