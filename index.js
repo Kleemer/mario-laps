@@ -34,38 +34,57 @@ io.on('connection', (socket) => {
     console.log(`New Room. ID: ${roomId}`)
     console.log('Username: ', username)
 
-    await redisUtils.createRoom(socket, username, roomId)
-    socket.join(roomId)
+    await redisUtils.createRoom(socket, roomId, username)
+    await joinRoom(socket, roomId, username)
   })
   socket.on('joinRoom', async ({ roomId, username }) => {
-    console.log(`Joining Room. ID: ${roomId}`)
+    console.log(`Join Room. ID: ${roomId}`)
     console.log('Username: ', username)
+    await joinRoom(socket, roomId, username)
+  })
+  socket.on('leaveRoom', async (roomId) => {
+    await leaveRoom(socket, roomId)
+  })
+  socket.on('disconnect', async () => {
+    console.log('Client disconnected.')
+    await redisUtils.removeUser(socket.roomId, userUtils.getUser(socket))
+  })
+})
 
-    const roomExists = await redisUtils.roomExists(roomId)
+const joinRoom = async (socket, roomId, username) => {
+  const roomExists = await redisUtils.roomExists(roomId)
     if (!roomExists) {
+      console.log('Room does not exist')
       return 'noRoom'
     }
 
     const usernames = userUtils.getUsernames(redisUtils.getUsers(roomId))
     if (usernames.includes(username)) {
+      console.log('Alread in the room')
       return 'alreadyInRoom'
     }
 
+    socket.username = username
     const user = userUtils.getUser(socket)
     await redisUtils.addUser(roomId, user)
-    io.to(roomId).emit('addUser', user)
+    // @todo see if can emit to only the roomId
+    // io.to(roomId).emit('addUser', user)
+    io.emit('addUser', user)
     socket.join(roomId)
-  })
-  socket.on('leaveRoom', async (roomId) => {
+    socket.roomId = roomId
+
+    return await redisUtils.getRoom(roomId)
+}
+
+const leaveRoom = async (socket, roomId) => {
+    const user = userUtils.getUser(socket)
+    await redisUtils.addUser(roomId, user)
+    // @todo see if can emit to only the roomId
+    // io.to(roomId).emit('addUser', user)
+    io.emit('removeUser', user)
     socket.leave(roomId)
-  })
-  socket.on('disconnect', async () => {
-    console.log('Client disconnected.')
-    socket.rooms.forEach(async (room) => {
-      await redisUtils.removeUser(room.id, userUtils.getUser(socket))
-    })
-  })
-})
+    delete socket.roomId
+    delete socket.username
 
-setInterval(() => io.emit('time', new Date().toTimeString()), 1000)
-
+    return roomId
+}

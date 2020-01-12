@@ -16,8 +16,8 @@ const getUsernames = (userList) => {
 
 const getUser = (socket) => {
   return {
+    id: socket.id,
     username: socket.username,
-    userId: socket.id
   }
 }
 

@@ -18,9 +18,9 @@ const getRoom = async (roomId) => {
   return { roomId, hostId, users }
 }
 
-const createRoom = async (socket, username, roomId) => {
+const createRoom = async (socket, roomId, username) => {
   socket.username = username
-  await setHostId(roomId, socket.userId)
+  await setHostId(roomId, socket.id)
 
   return roomId
 }
@@ -33,7 +33,7 @@ const destroyRoom = async (roomId) => {
 }
 
 const roomExists = async (roomId) => {
-  return await redisClient.exists(`room_${roomId}_hostId`)
+  return !!await redisClient.exists(`room_${roomId}_hostId`)
 }
 
 const getHostId = async (roomId) => {
