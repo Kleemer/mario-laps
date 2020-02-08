@@ -60,9 +60,7 @@ const addUser = async (roomId, user) => {
 
 const removeUser = async (roomId, user) => {
   await redisClient.lrem(`room_${roomId}_users`, 0, JSON.stringify(user))
-  if (!await getUsers(roomId).length) {
-    await destroyRoom(roomId)
-  }
+  return user
 }
 
 module.exports = {

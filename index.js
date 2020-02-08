@@ -30,19 +30,27 @@ app.get('/', (_, res) => {
 
 io.on('connection', (socket) => {
   console.log(`Client connected. socketID: ${socket.id}`)
-  socket.on('createRoom', async ({ roomId, username }) => {
+  socket.on('createRoom', async ({ roomId, username }, callback) => {
     console.log(`New Room. ID: ${roomId}`)
     console.log('Username: ', username)
 
     await redisUtils.createRoom(socket, roomId, username)
-    await joinRoom(socket, roomId, username)
+    const room = await joinRoom(socket, roomId, username)
+    if (typeof callback === 'function') {
+      callback(room)
+    }
   })
-  socket.on('joinRoom', async ({ roomId, username }) => {
+  socket.on('joinRoom', async ({ roomId, username }, callback) => {
     console.log(`Join Room. ID: ${roomId}`)
     console.log('Username: ', username)
-    await joinRoom(socket, roomId, username)
+
+    const room = await joinRoom(socket, roomId, username)
+    if (typeof callback === 'function') {
+      callback(room)
+    }
   })
-  socket.on('leaveRoom', async (roomId) => {
+  socket.on('leaveRoom', async (roomId, callback) => {
+    console.log(`Leave Room. ID: ${roomId}`)
     await leaveRoom(socket, roomId)
   })
   socket.on('disconnect', async () => {
@@ -51,6 +59,17 @@ io.on('connection', (socket) => {
   })
 })
 
+const joinSocket = (socket, roomId) => {
+  socket.join(roomId)
+  socket.roomId = roomId
+}
+
+const leaveSocket = (socket, roomId) => {
+  socket.leave(roomId)
+  delete socket.roomId
+  delete socket.username
+}
+
 const joinRoom = async (socket, roomId, username) => {
   const roomExists = await redisUtils.roomExists(roomId)
     if (!roomExists) {
@@ -58,33 +77,39 @@ const joinRoom = async (socket, roomId, username) => {
       return 'noRoom'
     }
 
-    const usernames = userUtils.getUsernames(redisUtils.getUsers(roomId))
+    const usernames = userUtils.getUsernames(await redisUtils.getUsers(roomId))
     if (usernames.includes(username)) {
-      console.log('Alread in the room')
+      console.log('Already in the room')
       return 'alreadyInRoom'
     }
 
     socket.username = username
     const user = userUtils.getUser(socket)
     await redisUtils.addUser(roomId, user)
-    // @todo see if can emit to only the roomId
-    // io.to(roomId).emit('addUser', user)
-    io.emit('addUser', user)
-    socket.join(roomId)
-    socket.roomId = roomId
+
+    joinSocket(socket, roomId)
+    io.to(roomId).emit('addUser', user)
 
     return await redisUtils.getRoom(roomId)
 }
 
 const leaveRoom = async (socket, roomId) => {
     const user = userUtils.getUser(socket)
-    await redisUtils.addUser(roomId, user)
-    // @todo see if can emit to only the roomId
-    // io.to(roomId).emit('addUser', user)
-    io.emit('removeUser', user)
-    socket.leave(roomId)
-    delete socket.roomId
-    delete socket.username
+    await redisUtils.removeUser(roomId, user)
+
+    io.to(roomId).emit('removeUser', user)
+    leaveSocket(socket, roomId)
+
+    const users = await redisUtils.getUsers(roomId)
+    if (users.length) {
+      const wasHost = (await redisUtils.getHostId(roomId)) === user.id
+      if (wasHost) {
+        await redisUtils.setHostId(roomId, users[0].id)
+        io.to(roomId).emit('updateHostId', users[0].id)
+      }
+    } else {
+      await redisUtils.destroyRoom(roomId)
+    }
 
     return roomId
 }
