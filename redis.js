@@ -15,7 +15,7 @@ const getRoom = async (roomId) => {
   const hostId = await redisClient.get(`room_${roomId}_hostId`)
   const users = await getUsers(roomId)
 
-  return { roomId, hostId, users }
+  return { id: roomId, hostId, users }
 }
 
 const createRoom = async (socket, roomId, username) => {

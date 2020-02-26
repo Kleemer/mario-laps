@@ -30,6 +30,7 @@ app.get('/', (_, res) => {
 
 io.on('connection', (socket) => {
   console.log(`Client connected. socketID: ${socket.id}`)
+
   socket.on('createRoom', async ({ roomId, username }, callback) => {
     console.log(`New Room. ID: ${roomId}`)
     console.log('Username: ', username)
@@ -40,6 +41,7 @@ io.on('connection', (socket) => {
       callback(room)
     }
   })
+
   socket.on('joinRoom', async ({ roomId, username }, callback) => {
     console.log(`Join Room. ID: ${roomId}`)
     console.log('Username: ', username)
@@ -49,10 +51,12 @@ io.on('connection', (socket) => {
       callback(room)
     }
   })
+
   socket.on('leaveRoom', async (roomId, callback) => {
     console.log(`Leave Room. ID: ${roomId}`)
     await leaveRoom(socket, roomId)
   })
+
   socket.on('disconnect', async () => {
     console.log('Client disconnected.')
     await redisUtils.removeUser(socket.roomId, userUtils.getUser(socket))
