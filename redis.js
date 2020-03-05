@@ -49,7 +49,34 @@ const setHostId = async (roomId, hostId) => {
 const getUsers = async (roomId) => {
   const users = await redisClient.lrange(`room_${roomId}_users`, 0, -1)
 
-  return users.map(u => JSON.parse(u))
+  return users.map((user) => JSON.parse(user))
+}
+
+const getUser = (userId, users) => {
+  users.find((user) => user.id === userId)
+  return users.find((user) => user.id === userId) || null
+}
+
+const getUserIndex = (userId, users) => {
+  users.find((user) => user.id === userId)
+  return users.findIndex((user) => user.id === userId)
+}
+
+const patchUser = async (roomId, userId, opts) => {
+  const users = await getUsers(roomId)
+  const user = getUser(userId, users)
+  const userIndex = getUserIndex(userId, users)
+
+  if (!user) {
+    return null
+  }
+
+  const patchedUser = {
+    ...user,
+    ...opts,
+  }
+
+  await redisClient.lset(`room_${roomId}_users`, userIndex, JSON.stringify(patchedUser))
 }
 
 const addUser = async (roomId, user) => {
@@ -73,6 +100,8 @@ module.exports = {
   getHostId,
   setHostId,
   getUsers,
+  getUser,
+  patchUser,
   addUser,
   removeUser
 }

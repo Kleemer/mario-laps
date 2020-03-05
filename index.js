@@ -31,6 +31,12 @@ app.get('/', (_, res) => {
 io.on('connection', (socket) => {
   console.log(`Client connected. socketID: ${socket.id}`)
 
+  socket.on('disconnect', async () => {
+    console.log('Client disconnected.')
+    await redisUtils.removeUser(socket.roomId, userUtils.getUser(socket))
+  })
+
+  // Room management
   socket.on('createRoom', async ({ roomId, username }, callback) => {
     console.log(`New Room. ID: ${roomId}`)
     console.log('Username: ', username)
@@ -57,9 +63,22 @@ io.on('connection', (socket) => {
     await leaveRoom(socket, roomId)
   })
 
-  socket.on('disconnect', async () => {
-    console.log('Client disconnected.')
-    await redisUtils.removeUser(socket.roomId, userUtils.getUser(socket))
+  socket.on('startGame', async ({ roomId, marioLap }, callback) => {
+    console.log('startGame', roomId, marioLap)
+    io.to(roomId).emit('startGame', marioLap)
+  })
+
+  // @todo In game management
+  socket.on('updatePosition', async (position, callback) => {
+    console.log(`New position: ${position}`)
+    console.log(`Room ID: ${socket.roomId}, Race ID: ${socket.raceId}`)
+    
+    const user = redisUtils.patchUser(socket.roomId, socket.id, { position })
+
+    io.to(roomId).emit('updateUser', user)
+    if (typeof callback === 'function') {
+      callback(user)
+    }
   })
 })
 
