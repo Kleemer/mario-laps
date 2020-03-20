@@ -63,15 +63,28 @@ io.on('connection', (socket) => {
     await leaveRoom(socket, roomId)
   })
 
-  socket.on('startGame', async ({ roomId, marioLap }, callback) => {
-    console.log('startGame', roomId, marioLap)
-    io.to(roomId).emit('startGame', marioLap)
+  socket.on('startGame', async (marioLap, callback) => {
+    console.log('Start game', socket.roomId, marioLap)
+    console.log(`Room ID: ${socket.roomId}`)
+    io.to(socket.roomId).emit('startGame', marioLap)
+    await redisUtils.setRound(socket.roomId, 1)
+    await redisUtils.setRace(socket.roomId, 1)
+  })
+
+  socket.on('endGame', async () => {
+    console.log(`End Game. ID: ${socket.roomId}`)
+    io.to(socket.roomId).emit('endGame', socket.roomId)
+  })
+  
+  socket.on('updateStore', ({ action, data }) => {
+    console.log('updateStore', action)
+    io.to(socket.roomId).emit('updateStore', { action, data })
   })
 
   // @todo In game management
   socket.on('updatePosition', async (position, callback) => {
     console.log(`New position: ${position}`)
-    console.log(`Room ID: ${socket.roomId}, Race ID: ${socket.raceId}`)
+    console.log(`Room ID: ${socket.roomId}`)
     
     const user = redisUtils.patchUser(socket.roomId, socket.id, { position })
 

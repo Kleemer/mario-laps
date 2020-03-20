@@ -90,6 +90,26 @@ const removeUser = async (roomId, user) => {
   return user
 }
 
+const getRound = async (roomId) => {
+  return await redisClient.get(`room_${roomId}_round`)
+}
+
+const setRound = async (roomId, round) => {
+  await redisClient.set(`room_${roomId}_round`, round)
+
+  return round
+}
+
+const getRace = async (roomId) => {
+  return await redisClient.get(`room_${roomId}_race`)
+}
+
+const setRace = async (roomId, race) => {
+  await redisClient.set(`room_${roomId}_race`, race)
+
+  return race
+}
+
 module.exports = {
   redisOptions,
   flushDb,
@@ -103,5 +123,9 @@ module.exports = {
   getUser,
   patchUser,
   addUser,
-  removeUser
+  removeUser,
+  getRound,
+  setRound,
+  getRace,
+  setRace,
 }
