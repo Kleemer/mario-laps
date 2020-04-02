@@ -75,23 +75,25 @@ io.on('connection', (socket) => {
     console.log(`End Game. ID: ${socket.roomId}`)
     io.to(socket.roomId).emit('endGame', socket.roomId)
   })
+
+  socket.on('nextRound', async () => {
+    console.log('nextRound')
+    const round = await redisUtils.getRound(socket.roomId)
+    await redisUtils.setRound(socket.roomId, round + 1)
+    await redisUtils.setRace(socket.roomId, 1)
+    io.to(socket.roomId).emit('nextRound')
+  })
+
+  socket.on('nextRace', async () => {
+    console.log('nextRace')
+    const race = await redisUtils.getRace(socket.roomId)
+    await redisUtils.setRace(socket.roomId, race + 1)
+    io.to(socket.roomId).emit('nextRace')
+  })
   
   socket.on('updateStore', ({ action, data }) => {
     console.log('updateStore', action)
     io.to(socket.roomId).emit('updateStore', { action, data })
-  })
-
-  // @todo In game management
-  socket.on('updatePosition', async (position, callback) => {
-    console.log(`New position: ${position}`)
-    console.log(`Room ID: ${socket.roomId}`)
-    
-    const user = redisUtils.patchUser(socket.roomId, socket.id, { position })
-
-    io.to(roomId).emit('updateUser', user)
-    if (typeof callback === 'function') {
-      callback(user)
-    }
   })
 })
 
