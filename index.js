@@ -58,15 +58,15 @@ io.on('connection', (socket) => {
     }
   })
 
-  socket.on('leaveRoom', async (roomId, callback) => {
+  socket.on('leaveRoom', async (roomId) => {
     console.log(`Leave Room. ID: ${roomId}`)
     await leaveRoom(socket, roomId)
   })
 
-  socket.on('startGame', async (marioLap, callback) => {
-    console.log('Start game', socket.roomId, marioLap)
+  socket.on('startGame', async () => {
+    console.log('Start game', socket.roomId)
     console.log(`Room ID: ${socket.roomId}`)
-    io.to(socket.roomId).emit('startGame', marioLap)
+    io.to(socket.roomId).emit('startGame')
     await redisUtils.setRound(socket.roomId, 1)
     await redisUtils.setRace(socket.roomId, 1)
   })
@@ -91,9 +91,13 @@ io.on('connection', (socket) => {
     io.to(socket.roomId).emit('nextRace')
   })
   
-  socket.on('updateStore', ({ action, data }) => {
+  socket.on('updateStore', ({ action, data }, callback) => {
     console.log('updateStore', action)
     io.to(socket.roomId).emit('updateStore', { action, data })
+
+    if (typeof callback === 'function') {
+      callback(data)
+    }
   })
 })
 
