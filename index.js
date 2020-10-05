@@ -11,7 +11,10 @@ app.use(bodyParser.json())
 app.use(cors())
 
 const server = require('http').createServer(app)
-const io = require('socket.io')(server)
+const io = require('socket.io')(server, {
+  // See https://github.com/socketio/socket.io/issues/3259#issuecomment-474523271
+  pingTimeout: 30000,
+})
 
 const port = process.env.PORT || 5000
 
